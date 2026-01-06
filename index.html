@@ -2,155 +2,262 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <title>PLAYER VIEW - Perfect Sync & Scroll</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=EB+Garamond&display=swap" rel="stylesheet">
+    <title>RPG PLAYER HUD - ULTIMATE ENGINE</title>
+    <!-- Import fontov -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=EB+Garamond:ital,wght@0,400;1,700&display=swap" rel="stylesheet">
+    
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #000; overflow: hidden; 
+            display: flex; justify-content: center; align-items: center; 
+            font-family: 'EB Garamond', serif; 
+        }
 
-        #stage { position: relative; display: flex; justify-content: center; align-items: center; max-width: 100vw; max-height: 100vh; }
+        /* Hlavná scéna, ktorá drží pomer strán mapy */
+        #stage { 
+            position: relative; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            max-width: 100vw; 
+            max-height: 100vh; 
+        }
 
-        #map-img { max-width: 100vw; max-height: 100vh; object-fit: contain; z-index: 1; }
-        
-        /* Hmla musí byť presne nad mapou */
-        #fog-canvas { position: absolute; top: 0; left: 0; z-index: 5; pointer-events: none; }
+        /* Vrstva 1: Hlavná Mapa */
+        #map-img { 
+            max-width: 100vw; 
+            max-height: 100vh; 
+            object-fit: contain; 
+            z-index: 1; 
+            transition: filter 1s ease; 
+        }
 
-        #mini-map { position: absolute; z-index: 10; border: 3px solid gold; opacity: 0; transition: 0.5s; transform: scale(0); }
+        /* Vrstva 2: Fog of War (Hmla) */
+        #fog-canvas { 
+            position: absolute; 
+            z-index: 5; 
+            pointer-events: none; 
+            /* Pozícia sa dopočítava v JS podľa mapy */
+        }
+
+        /* Vrstva 3: Mini Mapa (Focus) */
+        #mini-map { 
+            position: absolute; 
+            z-index: 10; 
+            max-width: 75%; 
+            max-height: 75%; 
+            border: 3px solid #d4af37; 
+            box-shadow: 0 0 50px rgba(0,0,0,1); 
+            opacity: 0; 
+            transform: scale(0); 
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
         #mini-map.active { opacity: 1; transform: scale(1); }
 
-        #scroll {
-            position: absolute; z-index: 50; width: 500px; padding: 50px;
-            background: #f4e4bc; border: 2px solid #d4af37;
+        /* Vrstva 4: Pergament (Scroll) */
+        #scroll { 
+            position: absolute; 
+            z-index: 50; 
+            width: 500px; 
+            padding: 50px; 
+            background: #f4e4bc; 
             background-image: url('https://www.transparenttextures.com/patterns/parchment.png');
-            box-shadow: 0 0 100px rgba(0,0,0,1); color: #2c1e14;
-            transform: scaleY(0); opacity: 0; transform-origin: top;
+            border: 2px solid #d4af37;
+            box-shadow: 0 0 100px rgba(0,0,0,1); 
+            color: #2c1e14; 
+            transform: scaleY(0); 
+            opacity: 0; 
+            transform-origin: top;
             transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            display: none; font-family: 'Cinzel Decorative', cursive;
+            display: none; 
             text-align: center;
+            cursor: pointer;
         }
         #scroll.active { display: block; transform: scaleY(1); opacity: 1; }
-
+        #scroll-text { font-family: 'Cinzel Decorative', cursive; font-size: 22px; line-height: 1.5; }
+        
+        /* Efekty */
         .blurred { filter: blur(10px) brightness(0.3); }
         
-        #status-indicator { position: absolute; top: 10px; right: 10px; color: #333; font-family: monospace; font-size: 10px; z-index: 100; }
+        #title-card { 
+            position: absolute; 
+            width: 100%; 
+            text-align: center; 
+            top: 40%; 
+            z-index: 100;
+            font-family: 'Cinzel Decorative'; 
+            font-size: 60px; 
+            color: white; 
+            opacity: 0; 
+            text-shadow: 0 0 20px gold;
+            transition: opacity 1s ease;
+            pointer-events: none;
+        }
+
+        /* Status indikátor */
+        #status { 
+            position: absolute; top: 10px; right: 10px; 
+            color: #333; font-family: monospace; font-size: 10px; z-index: 1000; 
+        }
     </style>
 </head>
 <body>
-    <div id="status-indicator">WS: CONNECTING...</div>
+
+    <div id="status">WS: CONNECTING...</div>
 
     <div id="stage">
-        <img id="map-img" src="">
+        <!-- Mapa na pozadí -->
+        <img id="map-img" src="" alt="">
+        
+        <!-- Plátno pre hmlu -->
         <canvas id="fog-canvas"></canvas>
-        <img id="mini-map" src="">
-        <div id="scroll">
-            <div id="scroll-text" style="font-size: 22px; line-height: 1.5;"></div>
+        
+        <!-- Prekrytie mini-mapou -->
+        <img id="mini-map" src="" alt="">
+        
+        <!-- Pergamen s textom -->
+        <div id="scroll" onclick="this.classList.toggle('active')">
+            <div id="scroll-text"></div>
         </div>
+
+        <!-- Nápis lokality -->
+        <div id="title-card"></div>
     </div>
 
     <script>
-        const canvas = document.getElementById('fog-canvas');
-        const ctx = canvas.getContext('2d');
-        const img = document.getElementById('map-img');
+        const status = document.getElementById('status');
+        const mapImg = document.getElementById('map-img');
+        const fogCanvas = document.getElementById('fog-canvas');
+        const fogCtx = fogCanvas.getContext('2d');
+        const miniMap = document.getElementById('mini-map');
         const scroll = document.getElementById('scroll');
         const scrollText = document.getElementById('scroll-text');
-        const status = document.getElementById('status-indicator');
+        const titleCard = document.getElementById('title-card');
 
-        // Funkcia na inicializáciu/reset hmly
-        function initFog() {
-            if (!img.src || img.clientWidth === 0) return;
-            
-            canvas.width = img.clientWidth;
-            canvas.height = img.clientHeight;
-            canvas.style.left = img.offsetLeft + "px";
-            canvas.style.top = img.offsetTop + "px";
+        // --- KONFIGURÁCIA SERVERA ---
+        const WS_URL = "wss://dnd-server-3.onrender.com/ws";
+        let socket;
 
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = "black";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // --- SYNCHRONIZÁCIA HMLE S MAPOU ---
+        function syncFog() {
+            if (!mapImg.src || mapImg.clientWidth === 0) return;
+
+            // Hmla musí mať presne tie isté rozmery a pozíciu ako mapa v strede
+            fogCanvas.width = mapImg.clientWidth;
+            fogCanvas.height = mapImg.clientHeight;
+            fogCanvas.style.left = mapImg.offsetLeft + "px";
+            fogCanvas.style.top = mapImg.offsetTop + "px";
+
+            // Zadebniť na čierno
+            fogCtx.globalCompositeOperation = 'source-over';
+            fogCtx.fillStyle = "black";
+            fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
+            console.log("Hmla inicializovaná pre mapu:", fogCanvas.width, "x", fogCanvas.height);
         }
 
-        // Automatické prispôsobenie pri načítaní obrázka alebo zmene okna
-        img.onload = initFog;
-        window.onresize = initFog;
+        mapImg.onload = syncFog;
+        window.onresize = syncFog;
 
-        // --- PRIPOJENIE NA RENDER SERVER ---
-        const WS_URL = "wss://dnd-server-3.onrender.com/ws";
-        let socket = new WebSocket(WS_URL);
+        // --- PRIPOJENIE ---
+        function connect() {
+            socket = new WebSocket(WS_URL);
 
-        socket.onopen = () => {
-            status.innerText = "WS: CONNECTED";
-            status.style.color = "green";
-            console.log("Pripojené na cloud server.");
-        };
+            socket.onopen = () => {
+                status.innerText = "WS: CONNECTED";
+                status.style.color = "green";
+                console.log("Pripojené na server.");
+            };
 
-        socket.onclose = () => {
-            status.innerText = "WS: DISCONNECTED";
-            status.style.color = "red";
-            // Skúsiť sa znova pripojiť po 3 sekundách
-            setTimeout(() => { socket = new WebSocket(WS_URL); }, 3000);
-        };
+            socket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log("Prijatý príkaz:", data);
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            // 1. Hlavná mapa
-            if(data.type === "bg_map") {
-                img.src = data.url;
-                // initFog sa spustí automaticky cez img.onload
-            }
-
-            // 2. ODKRÝVANIE HMLY (Reveal)
-            if(data.type === "reveal") {
-                if (canvas.width === 0) initFog();
-                
-                const x = data.x * canvas.width;
-                const y = data.y * canvas.height;
-                
-                // 'destination-out' spôsobí, že kreslenie "vymazáva" čiernu plochu
-                ctx.globalCompositeOperation = 'destination-out';
-                ctx.beginPath();
-                ctx.arc(x, y, 50, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // 3. Mini mapa
-            if(data.type === "mini_map") {
-                const mm = document.getElementById('mini-map');
-                mm.src = data.url; 
-                mm.classList.add('active');
-                img.classList.add('blurred');
-            }
-
-            // 4. Pergament / List
-            if(data.type === "scroll") {
-                scrollText.innerText = data.text;
-                scroll.style.display = "block";
-                setTimeout(() => scroll.classList.add('active'), 50);
-                img.classList.add('blurred');
-                // Zvuk rozbalenia (ak je dostupný)
-                new Audio('https://www.soundjay.com/misc/sounds/paper-unfold-1.mp3').play().catch(e=>{});
-            }
-
-            // 5. Čistenie
-            if(data.type === "clear") {
-                if(data.target === "fog") initFog();
-                if(data.target === "mini") {
-                    document.getElementById('mini-map').classList.remove('active');
-                    if (!scroll.classList.contains('active')) img.classList.remove('blurred');
+                // 1. Zmena hlavnej mapy
+                if (data.type === "bg_map") {
+                    mapImg.src = data.url;
                 }
-                if(data.target === "scroll") {
-                    scroll.classList.remove('active');
-                    setTimeout(() => { scroll.style.display = "none"; }, 800);
-                    if (!document.getElementById('mini-map').classList.contains('active')) img.classList.remove('blurred');
+
+                // 2. Odkrývanie hmly (Reveal)
+                if (data.type === "reveal") {
+                    // Prepočet % súradníc (0-1) na pixely plátna
+                    const x = data.x * fogCanvas.width;
+                    const y = data.y * fogCanvas.height;
+
+                    fogCtx.globalCompositeOperation = 'destination-out';
+                    fogCtx.beginPath();
+                    fogCtx.arc(x, y, 60, 0, Math.PI * 2); // Polomer gumy: 60px
+                    fogCtx.fill();
                 }
-                if(data.target === "all") {
-                    img.src = "";
-                    initFog();
-                    document.getElementById('mini-map').classList.remove('active');
-                    scroll.classList.remove('active');
-                    img.classList.remove('blurred');
+
+                // 3. Mini-mapa (Mesto/Dom)
+                if (data.type === "mini_map") {
+                    miniMap.src = data.url;
+                    miniMap.classList.add('active');
+                    mapImg.classList.add('blurred');
                 }
-            }
-        };
+
+                // 4. Pergament (Scroll)
+                if (data.type === "scroll") {
+                    scrollText.innerText = data.text;
+                    scroll.style.display = "block";
+                    setTimeout(() => scroll.classList.add('active'), 50);
+                    mapImg.classList.add('blurred');
+                    new Audio('https://www.soundjay.com/misc/sounds/paper-unfold-1.mp3').play().catch(e=>{});
+                }
+
+                // 5. Title Reveal (Nápis lokality)
+                if (data.type === "title") {
+                    titleCard.innerText = data.text;
+                    titleCard.style.opacity = 1;
+                    setTimeout(() => { titleCard.style.opacity = 0; }, 4000);
+                }
+
+                // 6. Čistenie vrstiev
+                if (data.type === "clear") {
+                    if (data.target === "fog") syncFog();
+                    if (data.target === "mini") {
+                        miniMap.classList.remove('active');
+                        if (!scroll.classList.contains('active')) mapImg.classList.remove('blurred');
+                    }
+                    if (data.target === "scroll") {
+                        scroll.classList.remove('active');
+                        setTimeout(() => { scroll.style.display = "none"; }, 800);
+                        if (!miniMap.classList.contains('active')) mapImg.classList.remove('blurred');
+                    }
+                    if (data.target === "all") {
+                        mapImg.src = "";
+                        miniMap.classList.remove('active');
+                        scroll.classList.remove('active');
+                        mapImg.classList.remove('blurred');
+                        initFogPlain();
+                    }
+                }
+            };
+
+            socket.onclose = () => {
+                status.innerText = "WS: DISCONNECTED (Retrying...)";
+                status.style.color = "red";
+                setTimeout(connect, 3000);
+            };
+
+            socket.onerror = (err) => {
+                console.error("Chyba WebSocketu:", err);
+                socket.close();
+            };
+        }
+
+        // Pomocná funkcia pre reset do čiernej ak nie je mapa
+        function initFogPlain() {
+            fogCanvas.width = window.innerWidth;
+            fogCanvas.height = window.innerHeight;
+            fogCanvas.style.left = "0px";
+            fogCanvas.style.top = "0px";
+            fogCtx.fillStyle = "black";
+            fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
+        }
+
+        connect();
     </script>
 </body>
 </html>
