@@ -63,6 +63,8 @@
         window.onresize = syncFogSize;
 
         const ws = new WebSocket("https://dnd-server-3.onrender.com");
+        const WS_URL = "wss://dnd-server-3.onrender.com/ws";
+        const socket = new WebSocket(WS_URL);
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
@@ -108,4 +110,5 @@
         };
     </script>
 </body>
+
 </html>
